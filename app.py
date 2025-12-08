@@ -13,8 +13,10 @@ from datetime import datetime
 # ============================================================
 app = Flask(__name__, template_folder="Template", static_folder="Static")
 
-# SECRET KEY untuk session login (ganti dengan yang lebih aman di production)
-app.secret_key = "gaw-secret-key-yang-wajib-diganti"
+# SECRET KEY untuk session login
+# - Di laptop: kalau SECRET_KEY belum diset, pakai "dev-secret-key-gaw"
+# - Di server (Render): isi SECRET_KEY di environment → akan dipakai otomatis
+app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key-gaw")
 
 
 # ============================================================
