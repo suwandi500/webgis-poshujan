@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Detail Pos Hujan - {{ meta.nama_pos }}</title>
+
+  <!-- Pin versi Chart.js biar stabil -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f5f9fc;
+      color: #023e8a;
+    }
+
+    header {
+      background-color: #023e8a;
+      color: white;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .title {
+      display: flex;
+      align-items: center;
+    }
+
+    .logos img {
+      height: 53px;
+      vertical-align: middle;
+    }
+
+    .logos img.gaw {
+      height: 57px;
+      margin-left: -30px;
+    }
+
+    .title-text {
+      margin-left: 10px;
+    }
+
+    .title-text h1 {
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .title-text p {
+      margin: 0;
+      font-size: 13px;
+      color: #d0eaff;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 30px auto 40px;
+      background: white;
+      padding: 20px 25px 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.08);
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 8px 20px;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    .meta-item span.label {
+      font-weight: 600;
+      color: #555;
+    }
+
+    .chart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .chart-header h2 {
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .chart-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .chart-toggle button {
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid #023e8a;
+      background: white;
+      color: #023e8a;
+      font-size: 13px;
+      cursor: pointer;
+      margin-left: 5px;
+    }
+
+    .chart-toggle button.active {
+      background-color: #023e8a;
+      color: white;
+    }
+
+    .chart-filter {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .chart-filter select {
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid #023e8a;
+      font-size: 13px;
+    }
+
+    .chart-container {
+      width: 100%;
+      height: 360px;
+      margin-bottom: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+
+    thead {
+      background-color: #023e8a;
+      color: white;
+    }
+
+    th, td {
+      padding: 6px 8px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: #f1f5fb;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 15px;
+      text-decoration: none;
+      background-color: #888;
+      color: white;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .back-link:hover {
+      background-color: #666;
+    }
+
+    @media (max-width: 700px) {
+      .container {
+        margin: 10px;
+        padding: 15px;
+      }
+      table {
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="title">
+    <div class="logos">
+      <img src="{{ url_for('static', filename='images/BMKG-Logo.png') }}" alt="BMKG" />
+      <img src="{{ url_for('static', filename='images/gaw-hitam.png') }}" alt="GAW" class="gaw"/>
+    </div>
+    <div class="title-text">
+      <h1>Detail Pos Hujan: {{ meta.nama_pos }}</h1>
+      <p>{{ meta.provinsi or '-' }} • {{ meta.kabupaten or '-' }} • {{ meta.kecamatan or '-' }}</p>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <!-- METADATA POS -->
+  <h2>📍 Metadata Pos Hujan</h2>
+  <div class="meta-grid">
+    <div class="meta-item">
+      <span class="label">Kode Pos: </span>{{ meta.kode_pos or '-' }}
+    </div>
+    <div class="meta-item">
+      <span class="label">Nama Pos: </span>{{ meta.nama_pos or '-' }}
+    </div>
+    <div class="meta-item">
+      <span class="label">Balai: </span>{{ meta.balai or '-' }}
+    </div>
+    <div class="meta-item">
+      <span class="label">Provinsi: </span>{{ meta.provinsi or '-' }}
+    </div>
+    <div class="meta-item">
+      <span class="label">Kabupaten: </span>{{ meta.kabupaten or '-' }}
+    </div>
+    <div class="meta-item">
+      <span class="label">Kecamatan: </span>{{ meta.kecamatan or '-' }}
+    </div>
+    <div class="meta-item">
+      <span class="label">Lintang: </span>{{ meta.lintang or '-' }}
+    </div>
+    <div class="meta-item">
+      <span class="label">Bujur: </span>{{ meta.bujur or '-' }}
+    </div>
+    <div class="meta-item">
+      <span class="label">Elevasi (mdpl): </span>{{ meta.elevasi if meta.elevasi is not none else '-' }}
+    </div>
+  </div>
+
+  <!-- GRAFIK CURAH HUJAN -->
+  <div class="chart-header">
+    <h2>📊 Grafik Curah Hujan</h2>
+    <div class="chart-controls">
+      <div class="chart-toggle">
+        <button id="btnHarian" class="active">Harian (Line)</button>
+        <button id="btnBulanan">Bulanan (Bar)</button>
+      </div>
+      <div class="chart-filter">
+        <label for="filterYear">Tahun:</label>
+        <select id="filterYear">
+          <option value="">Semua</option>
+        </select>
+
+        <label for="filterMonth">Bulan (untuk harian):</label>
+        <select id="filterMonth">
+          <option value="">Semua</option>
+          <option value="01">Jan</option>
+          <option value="02">Feb</option>
+          <option value="03">Mar</option>
+          <option value="04">Apr</option>
+          <option value="05">Mei</option>
+          <option value="06">Jun</option>
+          <option value="07">Jul</option>
+          <option value="08">Agu</option>
+          <option value="09">Sep</option>
+          <option value="10">Okt</option>
+          <option value="11">Nov</option>
+          <option value="12">Des</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-container">
+    <canvas id="chartCH"></canvas>
+  </div>
+
+  <!-- TABEL DATA HARIAN -->
+  <h2>📄 Tabel Curah Hujan Harian</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>No</th>
+        <th>Tanggal</th>
+        <th>Curah Hujan (mm)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if rows_harian %}
+        {% for r in rows_harian %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ r[0].strftime("%Y-%m-%d") }}</td>
+            <td>{{ "%.1f"|format(r[1]) if r[1] is not none else "-" }}</td>
+          </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="3">Belum ada data curah hujan untuk pos ini.</td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <a href="{{ url_for('lihat') }}" class="back-link">⬅ Kembali ke Daftar Pos</a>
+</div>
+
+<script>
+  const labelsHarian  = {{ harian_labels | tojson }};   // "2025-01-01"
+  const dataHarian    = {{ harian_values | tojson }};
+  const labelsBulanan = {{ bulanan_labels | tojson }};  // "2025-01"
+  const dataBulanan   = {{ bulanan_values | tojson }};
+
+  const ctx = document.getElementById("chartCH").getContext("2d");
+  let mode = "harian";
+  let chartCH = null;
+
+  // --- ambil daftar tahun dari data ---
+  function extractYears() {
+    const years = new Set();
+    labelsHarian.forEach(l => { if (l && l.length >= 4) years.add(l.substring(0, 4)); });
+    labelsBulanan.forEach(l => { if (l && l.length >= 4) years.add(l.substring(0, 4)); });
+    return Array.from(years).sort();
+  }
+
+  function populateYearFilter() {
+    const select = document.getElementById("filterYear");
+    const years = extractYears();
+    years.forEach(y => {
+      const opt = document.createElement("option");
+      opt.value = y;
+      opt.textContent = y;
+      select.appendChild(opt);
+    });
+  }
+
+  function getDataset(mode) {
+    if (mode === "bulanan") {
+      return {
+        labels: labelsBulanan,
+        data: dataBulanan,
+        label: "Total Curah Hujan Bulanan (mm)"
+      };
+    }
+    return {
+      labels: labelsHarian,
+      data: dataHarian,
+      label: "Curah Hujan Harian (mm)"
+    };
+  }
+
+  // year: "2025", month: "01", mode: "harian"/"bulanan"
+  function filterByYearMonth(labels, data, year, month, mode) {
+    if (mode === "bulanan") {
+      if (!year) return { labels, data };
+      const fL = [], fD = [];
+      labels.forEach((lab, i) => {
+        if (lab && lab.startsWith(year + "-")) {
+          fL.push(lab);
+          fD.push(data[i]);
+        }
+      });
+      return { labels: fL, data: fD };
+    }
+
+    if (!year) {
+      // kalau tahun kosong, abaikan bulan
+      return { labels, data };
+    }
+
+    const fLabels = [];
+    const fData = [];
+    labels.forEach((lab, idx) => {
+      if (!lab) return;
+      if (!lab.startsWith(year + "-")) return;
+
+      if (month) {
+        const mm = lab.substring(5, 7);  // "YYYY-MM-DD"
+        if (mm !== month) return;
+      }
+      fLabels.push(lab);
+      fData.push(data[idx]);
+    });
+
+    return { labels: fLabels, data: fData };
+  }
+
+  // --- FILTER TABEL HARIAN BERDASAR TAHUN/BULAN ---
+  function filterTable() {
+    const yearVal  = document.getElementById("filterYear").value;
+    const monthVal = document.getElementById("filterMonth").value;
+
+    const tbody = document.querySelector("table tbody");
+    if (!tbody) return;
+
+    const rows = tbody.querySelectorAll("tr");
+    let nomor = 0;
+
+    rows.forEach(row => {
+      const cells = row.querySelectorAll("td");
+      // baris pesan "belum ada data" punya colspan, biarkan saja
+      if (cells.length < 3) return;
+
+      const tglStr = cells[1].textContent.trim(); // "YYYY-MM-DD"
+      const yr  = tglStr.substring(0, 4);
+      const mon = tglStr.substring(5, 7);
+
+      let show = true;
+      if (yearVal && yr !== yearVal) show = false;
+      if (show && monthVal && monthVal !== mon) show = false;
+
+      if (show) {
+        row.style.display = "";
+        nomor += 1;
+        cells[0].textContent = nomor;  // update kolom "No"
+      } else {
+        row.style.display = "none";
+      }
+    });
+  }
+
+  // --- BUAT / UPDATE CHART ---
+  function createChart(mode) {
+    const ds = getDataset(mode);
+    const year  = document.getElementById("filterYear").value;
+    const month = document.getElementById("filterMonth").value;
+
+    const filtered = filterByYearMonth(ds.labels, ds.data, year, month, mode);
+
+    // label asli (YYYY-MM-DD / YYYY-MM)
+    const originalLabels = filtered.labels.slice();
+
+    // label yang ditampilkan di sumbu X (dipendekin)
+    let displayLabels = filtered.labels.slice();
+
+    if (mode === "harian") {
+      if (year && month) {
+        // tampilkan hanya hari: "01", "02", ...
+        displayLabels = originalLabels.map(l => l.substring(8, 10));
+      } else if (year && !month) {
+        // tampilkan "MM-DD"
+        displayLabels = originalLabels.map(l => l.substring(5)); // "MM-DD"
+      }
+    } else {
+      // mode bulanan: kalau tahun dipilih, tampilkan hanya "MM"
+      if (year) {
+        displayLabels = originalLabels.map(l => l.substring(5)); // "MM"
+      }
+    }
+
+    if (chartCH) chartCH.destroy();
+
+    const type = (mode === "harian") ? "line" : "bar";
+
+    let extra = "";
+    if (year) {
+      extra = year;
+      if (mode === "harian" && month) {
+        extra += "-" + month;
+      }
+    }
+
+    chartCH = new Chart(ctx, {
+      type: type,
+      data: {
+        labels: displayLabels,
+        datasets: [{
+          label: ds.label + (extra ? " (" + extra + ")" : ""),
+          data: filtered.data,
+          borderWidth: 2,
+          tension: (mode === "harian") ? 0.2 : 0,
+          pointRadius: 3,
+          _labelsTanggal: originalLabels, // simpan tanggal/bulan asli untuk tooltip
+          _mode: mode
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: "mm" }
+          },
+          x: {
+            type: "category",
+            offset: true,
+            ticks: {
+              autoSkip: true,
+              maxTicksLimit: 15,
+              maxRotation: 0,
+              minRotation: 0
+            }
+          }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              title: (items) => {
+                const item = items[0];
+                const ds = item.dataset;
+                const tanggal = ds._labelsTanggal[item.dataIndex];
+                // tooltip tetap pakai tanggal lengkap
+                return tanggal;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function setActiveButton() {
+    document.getElementById("btnHarian").classList.toggle("active", mode === "harian");
+    document.getElementById("btnBulanan").classList.toggle("active", mode === "bulanan");
+
+    const monthSelect = document.getElementById("filterMonth");
+    monthSelect.disabled = (mode === "bulanan");
+  }
+
+  // --- EVENT LISTENERS ---
+  document.getElementById("btnHarian").addEventListener("click", () => {
+    if (mode === "harian") return;
+    mode = "harian";
+    createChart(mode);
+    setActiveButton();
+    filterTable();
+  });
+
+  document.getElementById("btnBulanan").addEventListener("click", () => {
+    if (mode === "bulanan") return;
+    mode = "bulanan";
+    createChart(mode);
+    setActiveButton();
+    filterTable();
+  });
+
+  document.getElementById("filterYear").addEventListener("change", () => {
+    createChart(mode);
+    filterTable();
+  });
+
+  document.getElementById("filterMonth").addEventListener("change", () => {
+    if (mode === "harian") {
+      createChart(mode);
+    }
+    filterTable();
+  });
+
+  // INIT
+  populateYearFilter();
+  createChart(mode);
+  setActiveButton();
+  filterTable();
+</script>
+
+</body>
+</html>

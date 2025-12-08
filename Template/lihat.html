@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lihat Data Pos Hujan | WebGIS Pos Hujan</title>
+
+  <style>
+    * { box-sizing: border-box; }
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f5f9fc;
+      color: #023e8a;
+    }
+
+    header {
+      background-color: #023e8a;
+      color: white;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .title {
+      display: flex;
+      align-items: center;
+    }
+
+    .logos img {
+      height: 53px;
+      vertical-align: middle;
+    }
+
+    .logos img.gaw {
+      height: 57px;
+      margin-left: -30px;
+    }
+
+    .title-text {
+      margin-left: 10px;
+    }
+
+    .title-text h1 {
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .title-text p {
+      margin: 0;
+      font-size: 13px;
+      color: #d0eaff;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 30px auto;
+      background: white;
+      padding: 20px 25px 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.08);
+    }
+
+    .info-row {
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 5px;
+    }
+
+    .info-row strong {
+      color: #023e8a;
+    }
+
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 15px;
+      align-items: center;
+    }
+
+    .filter-bar label {
+      font-size: 13px;
+    }
+
+    .filter-bar select,
+    .filter-bar input {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #023e8a;
+      font-size: 14px;
+      min-width: 150px;
+    }
+
+    .filter-bar button {
+      padding: 7px 14px;
+      border-radius: 6px;
+      border: none;
+      background-color: #023e8a;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .filter-bar button:hover {
+      background-color: #0353a4;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    thead {
+      background-color: #023e8a;
+      color: white;
+    }
+
+    th, td {
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: #f1f5fb;
+    }
+
+    tbody tr:hover {
+      background-color: #e0efff;
+      cursor: pointer;
+    }
+
+    .ch-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 12px;
+      background-color: #e3f2ff;
+      color: #023e8a;
+    }
+
+    .ch-empty {
+      color: #888;
+      font-size: 12px;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 15px;
+      text-decoration: none;
+      background-color: #888;
+      color: white;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .back-link:hover {
+      background-color: #666;
+    }
+
+    @media (max-width: 700px) {
+      .container {
+        margin: 10px;
+        padding: 15px;
+      }
+      table {
+        font-size: 12px;
+      }
+      th, td {
+        padding: 6px 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="title">
+    <div class="logos">
+      <img src="{{ url_for('static', filename='images/BMKG-Logo.png') }}" alt="BMKG" />
+      <img src="{{ url_for('static', filename='images/gaw-hitam.png') }}" alt="GAW" class="gaw"/>
+    </div>
+    <div class="title-text">
+      <h1>Daftar Pos Hujan Observasi</h1>
+      <p>Stasiun Pemantau Atmosfer Global Lore Lindu Bariri</p>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <div class="info-row">
+    Menampilkan metadata dari tabel <strong>pos_hujan</strong>, <strong>kabupaten</strong>,
+    dan <strong>curah_hujan</strong> (curah hujan &amp; tanggal <em>terkini</em> per pos).
+    <br/>
+    Klik salah satu baris untuk melihat <strong>detail lengkap &amp; grafik curah hujan</strong>.
+  </div>
+
+  <!-- FILTER -->
+  <div class="filter-bar">
+    <label for="filterKab">Kabupaten:</label>
+    <select id="filterKab">
+      <option value="">Semua Kabupaten</option>
+    </select>
+
+    <label for="searchNama">Cari Nama Pos:</label>
+    <input type="text" id="searchNama" placeholder="Ketik nama pos...">
+
+    <button id="btnReset">Reset</button>
+  </div>
+
+  <!-- TABEL DATA POS -->
+  <table>
+    <thead>
+      <tr>
+        <th>No</th>
+        <th>Nama Pos</th>
+        <th>Kabupaten</th>
+        <th>Kecamatan</th>
+        <th>Lintang</th>
+        <th>Bujur</th>
+        <th>CH Terakhir (mm)</th>
+        <th>Tgl Terakhir</th>
+      </tr>
+    </thead>
+    <tbody id="tBodyPos">
+    </tbody>
+  </table>
+
+  <a href="{{ url_for('index') }}" class="back-link">⬅ Kembali ke Peta</a>
+</div>
+
+<script>
+  let allData = [];
+
+  // --- cek session ke backend: kalau belum login → balik ke index ---
+  async function checkSessionAndInit() {
+    try {
+      const resp = await fetch("/api/session");
+      const data = await resp.json();
+
+      if (!data.logged_in) {
+        // belum login → arahkan ke peta
+        window.location.href = "{{ url_for('index') }}";
+        return;
+      }
+
+      // sudah login → load data tabel
+      await loadData();
+    } catch (err) {
+      console.error("Gagal cek session:", err);
+      // kalau ada error jaringan, anggap belum login
+      window.location.href = "{{ url_for('index') }}";
+    }
+  }
+
+  async function loadData() {
+    try {
+      const resp = await fetch("/api/pos_hujan");
+      const data = await resp.json();
+      allData = data || [];
+      isiDropdownKabupaten();
+      renderTable();
+    } catch (err) {
+      console.error("Gagal load data:", err);
+      document.getElementById("tBodyPos").innerHTML = `
+        <tr><td colspan="8">Gagal memuat data dari server.</td></tr>
+      `;
+    }
+  }
+
+  function isiDropdownKabupaten() {
+    const selectKab = document.getElementById("filterKab");
+    const unikKab = [...new Set(allData.map(d => d.kabupaten).filter(Boolean))].sort();
+
+    unikKab.forEach(kab => {
+      const opt = document.createElement("option");
+      opt.value = kab;
+      opt.textContent = kab;
+      selectKab.appendChild(opt);
+    });
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById("tBodyPos");
+    tbody.innerHTML = "";
+
+    const filterKab = document.getElementById("filterKab").value;
+    const searchNama = document.getElementById("searchNama").value.toLowerCase();
+
+    let filtered = allData;
+
+    if (filterKab) {
+      filtered = filtered.filter(d => d.kabupaten === filterKab);
+    }
+    if (searchNama) {
+      filtered = filtered.filter(d => d.nama && d.nama.toLowerCase().includes(searchNama));
+    }
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `
+        <tr><td colspan="8">Tidak ada data yang cocok dengan filter.</td></tr>
+      `;
+      return;
+    }
+
+    filtered.forEach((row, idx) => {
+      const tr = document.createElement("tr");
+
+      // Format CH terakhir
+      let chHtml = "";
+      if (row.ch_terkini != null && row.ch_terkini !== undefined) {
+        const chValue = Number(row.ch_terkini).toFixed(1);
+        chHtml = `<span class="ch-badge">${chValue} mm</span>`;
+      } else {
+        chHtml = `<span class="ch-empty">Belum ada data</span>`;
+      }
+
+      const tglTerakhir = row.tanggal_terkini || "-";
+
+      tr.innerHTML = `
+        <td>${idx + 1}</td>
+        <td>${row.nama || "-"}</td>
+        <td>${row.kabupaten || "-"}</td>
+        <td>${row.kecamatan || "-"}</td>
+        <td>${row.lat != null ? row.lat.toFixed(4) : "-"}</td>
+        <td>${row.lng != null ? row.lng.toFixed(4) : "-"}</td>
+        <td>${chHtml}</td>
+        <td>${tglTerakhir}</td>
+      `;
+
+      // klik baris → detail pos (backend sudah dibatasi login_required)
+      tr.addEventListener("click", () => {
+        if (row.id_poshujan != null) {
+          window.location.href = "/pos/" + row.id_poshujan;
+        }
+      });
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  document.getElementById("filterKab").addEventListener("change", renderTable);
+  document.getElementById("searchNama").addEventListener("input", renderTable);
+  document.getElementById("btnReset").addEventListener("click", () => {
+    document.getElementById("filterKab").value = "";
+    document.getElementById("searchNama").value = "";
+    renderTable();
+  });
+
+  // INIT: cek session dulu, baru load data
+  checkSessionAndInit();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Upload Data | Peta Pos Hujan</title>
+  <style>
+    * { box-sizing: border-box; }
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f5f9fc;
+      color: #023e8a;
+    }
+
+    header {
+      background-color: #023e8a;
+      color: white;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .title {
+      display: flex;
+      align-items: center;
+    }
+
+    .logos img {
+      height: 53px;
+      vertical-align: middle;
+    }
+
+    .logos img.gaw {
+      height: 57px;
+      margin-left: -30px;
+    }
+
+    .title-text {
+      margin-left: 10px;
+    }
+
+    .title-text h1 {
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .title-text p {
+      margin: 0;
+      font-size: 13px;
+      color: #d0eaff;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 30px auto 40px;
+      background: white;
+      padding: 30px 25px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    .section-title {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 20px;
+      text-align: center;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #555;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .block {
+      margin-bottom: 30px;
+      border-top: 1px solid #e0e0e0;
+      padding-top: 20px;
+    }
+
+    .block:first-of-type {
+      border-top: none;
+      padding-top: 0;
+    }
+
+    .block h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+
+    .block p {
+      margin: 0 0 12px;
+      font-size: 13px;
+      color: #555;
+    }
+
+    .file-hint {
+      font-size: 12px;
+      color: #777;
+      margin-bottom: 8px;
+    }
+
+    .message {
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      display: none;
+      text-align: left;
+    }
+
+    .message.success {
+      background-color: #d8f3dc;
+      color: #1b4332;
+      border: 1px solid #95d5b2;
+    }
+
+    .message.error {
+      background-color: #ffe3e0;
+      color: #b02a37;
+      border: 1px solid #ffb3b3;
+    }
+
+    .drop-zone {
+      border: 2px dashed #023e8a;
+      border-radius: 8px;
+      padding: 25px;
+      cursor: pointer;
+      transition: background 0.3s;
+      margin-bottom: 15px;
+    }
+
+    .drop-zone:hover {
+      background: #e6f2ff;
+    }
+
+    .drop-zone p {
+      margin: 0;
+      font-size: 14px;
+      color: #555;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      background-color: #023e8a;
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 5px;
+      font-size: 15px;
+    }
+
+    button:hover {
+      background-color: #0353a4;
+    }
+
+    button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    a.back-btn {
+      display: block;
+      text-align: center;
+      background-color: #888;
+      color: white;
+      padding: 10px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: bold;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    a.back-btn:hover {
+      background-color: #666;
+    }
+
+    @media (max-width: 600px) {
+      .container { margin: 20px 10px; padding: 20px 15px; }
+      .title-text h1 { font-size: 16px; }
+      .title-text p { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="title">
+    <div class="logos">
+      <img src="{{ url_for('static', filename='images/BMKG-Logo.png') }}" alt="BMKG" />
+      <img src="{{ url_for('static', filename='images/gaw-hitam.png') }}" alt="GAW" class="gaw"/>
+    </div>
+    <div class="title-text">
+      <h1>Upload Data Pos Hujan</h1>
+      <p>Stasiun Pemantau Atmosfer Global Lore Lindu Bariri</p>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <h2 class="section-title">📤 Unggah File Excel / CSV</h2>
+  <div class="subtitle">
+    Gunakan format Excel atau CSV yang sesuai untuk <strong>metadata pos hujan</strong> dan <strong>data curah hujan</strong>.<br>
+    <span style="font-size:12px;color:#777;">Mendukung: <strong>.xlsx, .xls, .csv</strong></span>
+  </div>
+
+  <!-- ============ BLOK 1: METADATA POS HUJAN ============ -->
+  <div class="block">
+    <h3>1. Metadata Pos Hujan</h3>
+    <p>
+      Format kolom wajib:
+      <em>Pos Hujan, ID, Balai, Provinsi, Kabupaten, Kecamatan, Lintang, Bujur, Elevasi</em>.
+    </p>
+    <div class="file-hint">File bisa berupa Excel (.xlsx/.xls) atau CSV (.csv).</div>
+
+    <div id="msgMeta" class="message"></div>
+
+    <form id="formMeta" enctype="multipart/form-data">
+      <div class="drop-zone" id="dropMeta">
+        <p id="textMeta">Tarik file metadata ke sini atau klik untuk memilih</p>
+        <input type="file" id="fileMeta" name="file" accept=".xlsx,.xls,.csv" required/>
+      </div>
+      <button type="submit">Unggah Metadata Pos Hujan</button>
+    </form>
+  </div>
+
+  <!-- ============ BLOK 2: DATA CURAH HUJAN ============ -->
+  <div class="block">
+    <h3>2. Data Curah Hujan</h3>
+    <p>
+      Minimal kolom: <em>Pos Hujan, Tanggal, Curah Hujan</em>.<br>
+      Kolom lain (Kabupaten, Kecamatan) opsional.
+    </p>
+    <div class="file-hint">File bisa berupa Excel (.xlsx/.xls) atau CSV (.csv).</div>
+
+    <div id="msgCH" class="message"></div>
+
+    <form id="formCH" enctype="multipart/form-data">
+      <div class="drop-zone" id="dropCH">
+        <p id="textCH">Tarik file curah hujan ke sini atau klik untuk memilih</p>
+        <input type="file" id="fileCH" name="file" accept=".xlsx,.xls,.csv" required/>
+      </div>
+      <button type="submit">Unggah Data Curah Hujan</button>
+    </form>
+  </div>
+
+  <a href="{{ url_for('index') }}" class="back-btn">⬅ Kembali ke Dashboard</a>
+</div>
+
+<script>
+  // Endpoint Flask
+  const URL_UPLOAD_METADATA = "{{ url_for('upload_metadata') }}";
+  const URL_UPLOAD_CH       = "{{ url_for('upload_curah_hujan') }}";
+
+  // Helper drop-zone
+  function setupDropZone(dropId, fileId, textId, defaultText) {
+    const dropZone = document.getElementById(dropId);
+    const fileInput = document.getElementById(fileId);
+    const textEl = document.getElementById(textId);
+
+    function resetText() {
+      textEl.textContent = defaultText;
+    }
+
+    dropZone.addEventListener("click", () => fileInput.click());
+
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.style.background = "#e6f2ff";
+    });
+
+    dropZone.addEventListener("dragleave", () => {
+      dropZone.style.background = "transparent";
+    });
+
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.style.background = "transparent";
+      if (e.dataTransfer.files.length > 0) {
+        fileInput.files = e.dataTransfer.files;
+        textEl.textContent = e.dataTransfer.files[0].name;
+      }
+    });
+
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files.length > 0) {
+        textEl.textContent = fileInput.files[0].name;
+      } else {
+        resetText();
+      }
+    });
+
+    // simpan fungsi reset di elemen untuk dipakai di luar
+    fileInput._resetLabel = resetText;
+  }
+
+  setupDropZone("dropMeta", "fileMeta", "textMeta", "Tarik file metadata ke sini atau klik untuk memilih");
+  setupDropZone("dropCH", "fileCH", "textCH", "Tarik file curah hujan ke sini atau klik untuk memilih");
+
+  function showMessage(elId, type, text) {
+    const el = document.getElementById(elId);
+    el.className = "message " + (type === "success" ? "success" : "error");
+    el.textContent = text;
+    el.style.display = "block";
+  }
+
+  function handleForbidden(msgId) {
+    showMessage(msgId, "error", "Anda belum login. Silakan login dari halaman utama.");
+    setTimeout(() => {
+      window.location.href = "{{ url_for('index') }}";
+    }, 2000);
+  }
+
+  // Submit Metadata
+  document.getElementById("formMeta").addEventListener("submit", async function(e) {
+    e.preventDefault();
+    const fileInput = document.getElementById("fileMeta");
+    const btn = this.querySelector("button[type='submit']");
+
+    if (fileInput.files.length === 0) {
+      showMessage("msgMeta", "error", "Silakan pilih file metadata terlebih dahulu.");
+      return;
+    }
+
+    const fd = new FormData();
+    fd.append("file", fileInput.files[0]);
+
+    btn.disabled = true;
+    const oldText = btn.textContent;
+    btn.textContent = "Mengunggah...";
+
+    try {
+      const resp = await fetch(URL_UPLOAD_METADATA, {
+        method: "POST",
+        body: fd
+      });
+
+      if (resp.status === 403) {
+        handleForbidden("msgMeta");
+        return;
+      }
+
+      const data = await resp.json();
+      if (data.status === "success") {
+        showMessage("msgMeta", "success", data.message || "Metadata berhasil diupload.");
+        fileInput.value = "";
+        if (typeof fileInput._resetLabel === "function") {
+          fileInput._resetLabel();
+        }
+      } else {
+        showMessage("msgMeta", "error", data.message || "Terjadi kesalahan saat upload metadata.");
+      }
+    } catch (err) {
+      console.error(err);
+      showMessage("msgMeta", "error", "Gagal terhubung ke server.");
+    } finally {
+      if (!btn.disabled) return;
+      btn.disabled = false;
+      btn.textContent = oldText;
+    }
+  });
+
+  // Submit Curah Hujan
+  document.getElementById("formCH").addEventListener("submit", async function(e) {
+    e.preventDefault();
+    const fileInput = document.getElementById("fileCH");
+    const btn = this.querySelector("button[type='submit']");
+
+    if (fileInput.files.length === 0) {
+      showMessage("msgCH", "error", "Silakan pilih file curah hujan terlebih dahulu.");
+      return;
+    }
+
+    const fd = new FormData();
+    fd.append("file", fileInput.files[0]);
+
+    btn.disabled = true;
+    const oldText = btn.textContent;
+    btn.textContent = "Mengunggah...";
+
+    try {
+      const resp = await fetch(URL_UPLOAD_CH, {
+        method: "POST",
+        body: fd
+      });
+
+      if (resp.status === 403) {
+        handleForbidden("msgCH");
+        return;
+      }
+
+      const data = await resp.json();
+      if (data.status === "success") {
+        let msg = data.message || "Data curah hujan berhasil diupload.";
+        if (data.pos_tidak_ditemukan && data.pos_tidak_ditemukan.length > 0) {
+          msg += " Namun beberapa Pos Hujan tidak ditemukan di metadata: " +
+                 data.pos_tidak_ditemukan.join(", ");
+        }
+        showMessage("msgCH", "success", msg);
+        fileInput.value = "";
+        if (typeof fileInput._resetLabel === "function") {
+          fileInput._resetLabel();
+        }
+      } else {
+        showMessage("msgCH", "error", data.message || "Terjadi kesalahan saat upload curah hujan.");
+      }
+    } catch (err) {
+      console.error(err);
+      showMessage("msgCH", "error", "Gagal terhubung ke server.");
+    } finally {
+      if (!btn.disabled) return;
+      btn.disabled = false;
+      btn.textContent = oldText;
+    }
+  });
+</script>
+
+</body>
+</html>

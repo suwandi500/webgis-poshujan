@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Peta Pos Hujan | Sulawesi Tengah</title>
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      background-color: #f5f9fc;
+    }
+
+    header {
+      background-color: #023e8a;
+      color: white;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      position: relative;
+      z-index: 1000;
+    }
+
+    .title {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .logos img {
+      height: 53px;
+      vertical-align: middle;
+    }
+    .logos img.gaw {
+      height: 57px;
+      margin-left: -30px;
+    }
+
+    .title-text {
+      margin-left: 10px;
+    }
+    .title-text h1 {
+      font-size: 18px;
+      margin: 0;
+      color: white;
+    }
+    .title-text p {
+      margin: 0;
+      font-size: 13px;
+      color: #d0eaff;
+    }
+
+    .header-buttons {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      position: relative;
+    }
+    .header-buttons button,
+    .header-buttons .menu-btn {
+      background-color: white;
+      color: #023e8a;
+      border: 1px solid #023e8a;
+      border-radius: 5px;
+      padding: 6px 12px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .menu {
+      position: relative;
+    }
+    .dropdown-data {
+      display: none;
+      position: absolute;
+      top: 110%;
+      right: 0;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      border-radius: 6px;
+      min-width: 160px;
+      z-index: 2000;
+    }
+    .dropdown-data a {
+      display: block;
+      padding: 10px 15px;
+      text-decoration: none;
+      color: #023e8a;
+      font-size: 14px;
+    }
+    .dropdown-data a:hover {
+      background-color: #f1f1f1;
+    }
+    .menu:hover .dropdown-data {
+      display: block;
+    }
+
+    .profile-dropdown {
+      position: relative;
+    }
+    .profile-icon {
+      background-color: #d0eaff;
+      color: #023e8a;
+      font-weight: bold;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      top: 110%;
+      right: 0;
+      background: white;
+      border-radius: 6px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      z-index: 1000;
+    }
+    .dropdown-content button {
+      padding: 10px;
+      width: 100%;
+      border: none;
+      background: white;
+      text-align: left;
+      cursor: pointer;
+    }
+    .profile-dropdown:hover .dropdown-content {
+      display: block;
+    }
+
+    #map {
+      flex: 1;
+      z-index: 0;
+    }
+
+    .filter-inline {
+      position: absolute;
+      top: 100px;
+      right: 20px;
+      display: flex;
+      gap: 6px;
+      z-index: 500;
+    }
+    .filter-inline select {
+      font-size: 13px;
+      padding: 4px 8px;
+      border: 1px solid #023e8a;
+      border-radius: 4px;
+      color: #023e8a;
+      background-color: white;
+    }
+    .filter-inline button {
+      background: transparent;
+      border: none;
+      padding: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .popup-box {
+      position: fixed;
+      top: 90px;
+      right: 20px;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.15);
+      z-index: 999;
+      width: 320px;
+      display: none;
+      border: 1px solid #e0e0e0;
+    }
+    .popup-box h3 {
+      margin-top: 0;
+      color: #023e8a;
+      font-size: 18px;
+    }
+    .popup-box input {
+      width: 100%;
+      margin-top: 10px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #f8f9fa;
+    }
+    .popup-box button {
+      margin-top: 15px;
+      background-color: #023e8a;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      font-size: 20px;
+      cursor: pointer;
+      color: #888;
+    }
+
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #023e8a;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      display: none;
+      z-index: 1001;
+    }
+
+    /* ====== STYLING POPUP MARKER POS HUJAN ====== */
+    .leaflet-popup-content-wrapper {
+      border-radius: 10px;
+    }
+
+    .leaflet-popup-content {
+      margin: 8px 10px;
+    }
+
+    .popup-card {
+      font-size: 13px;
+      color: #023e8a;
+    }
+
+    .popup-title {
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .popup-meta {
+      margin-bottom: 6px;
+    }
+
+    .popup-meta div {
+      line-height: 1.4;
+    }
+
+    .popup-rain {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 6px 0;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background-color: #e3f2ff;
+    }
+
+    .popup-rain-emoji {
+      font-size: 22px;
+    }
+
+    .popup-rain-value {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .popup-rain-value span.unit {
+      font-size: 12px;
+      font-weight: 500;
+      color: #555;
+      margin-left: 2px;
+    }
+
+    .popup-rain-date {
+      font-size: 11px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="title">
+    <div class="logos">
+      <img src="{{ url_for('static', filename='images/BMKG-Logo.png') }}" alt="BMKG" />
+      <img src="{{ url_for('static', filename='images/gaw-hitam.png') }}" alt="GAW" class="gaw"/>
+    </div>
+
+    <div class="title-text">
+      <h1>Peta Pos Hujan Observasi di Sulawesi Tengah</h1>
+      <p>Stasiun Pemantau Atmosfer Global Lore Lindu Bariri</p>
+    </div>
+  </div>
+
+  <div class="header-buttons">
+    <div class="menu" id="menuPosHujan" style="display: none;">
+      <button class="menu-btn">📊 Data Pos Hujan ▾</button>
+      <div class="dropdown-data">
+        <a href="{{ url_for('upload') }}">⬆️ Upload Data</a>
+        <a href="{{ url_for('lihat') }}">👁️ Lihat Data</a>
+      </div>
+    </div>
+
+    <button id="loginBtn">🔑 Login</button>
+
+    <div class="profile-dropdown" id="profileArea" style="display:none;">
+      <button class="profile-icon" id="profileLabel">👤 admin</button>
+      <div class="dropdown-content">
+        <button onclick="handleLogout()">🚪 Logout</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Filter Kabupaten/Kecamatan -->
+<div class="filter-inline">
+  <select id="filterKabupaten">
+    <option value="">Kabupaten</option>
+  </select>
+
+  <select id="filterKecamatan">
+    <option value="">Kecamatan</option>
+  </select>
+
+  <button id="resetFilterBtn" title="Reset Filter">🔄</button>
+</div>
+
+<!-- Login Popup -->
+<div class="popup-box" id="loginBox">
+  <span class="close-btn" onclick="hidePopups()">×</span>
+  <h3>🔑 Login Admin</h3>
+  <form onsubmit="handleLogin(); return false;">
+    <input type="text" id="username" placeholder="Username" required />
+    <input type="password" id="password" placeholder="Password" required />
+    <button type="submit">Masuk</button>
+  </form>
+</div>
+
+<!-- Map -->
+<div id="map"></div>
+
+<div id="toast"></div>
+
+<script>
+/* ==========================
+      STATE GLOBAL
+========================== */
+let isLoggedIn = false;
+let currentUser = null;
+
+let markersData = [];       // {id_poshujan, name, lat, lng, kabupaten, kecamatan, lastDate, lastCH}
+let kecamatanData = {};     // { "Sigi": Set([...]), ... }
+let activeMarkers = [];
+
+/* ==========================
+      LEAFLET MAP
+========================== */
+const map = L.map('map').setView([-1.5, 120.0], 7);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors',
+  subdomains: ['a','b','c'],
+  maxZoom: 19
+}).addTo(map);
+
+// Batas provinsi Indonesia
+fetch("https://raw.githubusercontent.com/superpikar/indonesia-geojson/master/indonesia-prov.geojson")
+  .then(res => res.json())
+  .then(data => {
+    L.geoJSON(data, {
+      style: { color: "#444", weight: 1, fillOpacity: 0 }
+    }).addTo(map);
+  });
+
+async function loadPosHujan() {
+  try {
+    const res = await fetch("/api/pos_hujan");
+    const data = await res.json();
+
+    markersData = [];
+    kecamatanData = {};
+    const kabSet = new Set();
+
+    data.forEach(d => {
+      markersData.push({
+        id_poshujan: d.id_poshujan,
+        name: d.nama,
+        lat: d.lat,
+        lng: d.lng,
+        kabupaten: d.kabupaten || "",
+        kecamatan: d.kecamatan || "",
+        lastDate: d.tanggal_terkini || null,
+        lastCH: d.ch_terkini
+      });
+
+      if (d.kabupaten) {
+        kabSet.add(d.kabupaten);
+        if (!kecamatanData[d.kabupaten]) {
+          kecamatanData[d.kabupaten] = new Set();
+        }
+        if (d.kecamatan) {
+          kecamatanData[d.kabupaten].add(d.kecamatan);
+        }
+      }
+    });
+
+    // Isi dropdown kabupaten
+    const kabSelect = document.getElementById("filterKabupaten");
+    kabSelect.innerHTML = '<option value="">Kabupaten</option>';
+    Array.from(kabSet).sort().forEach(kab => {
+      const opt = document.createElement("option");
+      opt.value = kab;
+      opt.textContent = kab;
+      kabSelect.appendChild(opt);
+    });
+
+    filterMarkers();
+
+  } catch (err) {
+    console.error(err);
+    showToast("Gagal memuat data pos hujan dari server.");
+  }
+}
+
+function filterMarkers() {
+  // bersihkan marker lama
+  activeMarkers.forEach(marker => map.removeLayer(marker));
+  activeMarkers = [];
+
+  const selectedKab = document.getElementById("filterKabupaten").value;
+  const selectedKec = document.getElementById("filterKecamatan").value;
+
+  let bounds = [];
+
+  markersData.forEach(pos => {
+    const matchKab = !selectedKab || pos.kabupaten === selectedKab;
+    const matchKec = !selectedKec || pos.kecamatan === selectedKec;
+
+    if (matchKab && matchKec) {
+
+      let rainBlock = "";
+      if (pos.lastDate && pos.lastCH !== null && pos.lastCH !== undefined) {
+        const chStr = Number(pos.lastCH).toFixed(1);
+        rainBlock = `
+          <div class="popup-rain">
+            <div class="popup-rain-emoji">🌧️</div>
+            <div>
+              <div class="popup-rain-value">
+                ${chStr}<span class="unit">mm</span>
+              </div>
+              <div class="popup-rain-date">
+                Tanggal: ${pos.lastDate}
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        rainBlock = `
+          <div class="popup-rain">
+            <div class="popup-rain-emoji">🌧️</div>
+            <div>
+              <div class="popup-rain-value">Belum ada data</div>
+              <div class="popup-rain-date">Curah hujan terakhir belum tercatat</div>
+            </div>
+          </div>
+        `;
+      }
+
+      const popupHtml = `
+        <div class="popup-card">
+          <div class="popup-title">${pos.name}</div>
+          <div class="popup-meta">
+            <div><strong>Kabupaten:</strong> ${pos.kabupaten || "-"}</div>
+            <div><strong>Kecamatan:</strong> ${pos.kecamatan || "-"}</div>
+          </div>
+          ${rainBlock}
+        </div>
+      `;
+
+      const marker = L.marker([pos.lat, pos.lng])
+        .addTo(map)
+        .bindPopup(popupHtml);
+
+      activeMarkers.push(marker);
+      bounds.push([pos.lat, pos.lng]);
+    }
+  });
+
+  if (bounds.length > 0) {
+    map.fitBounds(bounds, { padding: [50, 50] });
+  }
+}
+
+/* ==========================
+      LOGIN (backend)
+========================== */
+function updateUIBasedOnLogin() {
+  document.getElementById("loginBtn").style.display   = isLoggedIn ? "none" : "inline-block";
+  document.getElementById("profileArea").style.display = isLoggedIn ? "inline-block" : "none";
+  document.getElementById("menuPosHujan").style.display = isLoggedIn ? "inline-block" : "none";
+
+  if (currentUser) {
+    document.getElementById("profileLabel").textContent = "👤 " + currentUser;
+  }
+}
+
+// cek status session dari backend
+async function checkSession() {
+  try {
+    const res = await fetch("/api/session");
+    const data = await res.json();
+
+    if (data.logged_in) {
+      isLoggedIn = true;
+      currentUser = data.username || "admin";
+    } else {
+      isLoggedIn = false;
+      currentUser = null;
+    }
+    updateUIBasedOnLogin();
+  } catch (err) {
+    console.error("Gagal cek session:", err);
+    isLoggedIn = false;
+    currentUser = null;
+    updateUIBasedOnLogin();
+  }
+}
+
+async function handleLogin() {
+  const u = document.getElementById("username").value.trim();
+  const p = document.getElementById("password").value.trim();
+
+  if (!u || !p) {
+    showToast("Username dan password wajib diisi.");
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ username: u, password: p })
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.status === "success") {
+      isLoggedIn = true;
+      currentUser = data.username || u;
+      updateUIBasedOnLogin();
+      hidePopups();
+      showToast("Login berhasil.");
+    } else {
+      showToast(data.message || "Login gagal.");
+    }
+  } catch (err) {
+    console.error("Error login:", err);
+    showToast("Gagal terhubung ke server.");
+  }
+}
+
+async function handleLogout() {
+  try {
+    await fetch("/api/logout", { method: "POST" });
+  } catch (err) {
+    console.error("Error logout:", err);
+  }
+  isLoggedIn = false;
+  currentUser = null;
+  updateUIBasedOnLogin();
+  showToast("Logout berhasil.");
+}
+
+function hidePopups() {
+  document.getElementById("loginBox").style.display = "none";
+}
+
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.style.display = "block";
+  setTimeout(() => toast.style.display = "none", 3000);
+}
+
+/* ==========================
+      EVENT LISTENERS
+========================== */
+document.getElementById("loginBtn").addEventListener("click", () => {
+  hidePopups();
+  document.getElementById("loginBox").style.display = "block";
+});
+
+document.getElementById("filterKabupaten").addEventListener("change", function () {
+  const kab = this.value;
+  const kecSelect = document.getElementById("filterKecamatan");
+
+  kecSelect.innerHTML = '<option value="">Kecamatan</option>';
+
+  if (kecamatanData[kab]) {
+    Array.from(kecamatanData[kab]).sort().forEach(kec => {
+      const opt = document.createElement("option");
+      opt.value = kec;
+      opt.textContent = kec;
+      kecSelect.appendChild(opt);
+    });
+  }
+
+  filterMarkers();
+});
+
+document.getElementById("filterKecamatan").addEventListener("change", filterMarkers);
+
+document.getElementById("resetFilterBtn").addEventListener("click", () => {
+  document.getElementById("filterKabupaten").value = "";
+  document.getElementById("filterKecamatan").innerHTML = '<option value="">Kecamatan</option>';
+  filterMarkers();
+});
+
+document.addEventListener("click", function(event) {
+  const loginBox = document.getElementById("loginBox");
+  if (!loginBox.contains(event.target) && event.target.id !== "loginBtn") {
+    hidePopups();
+  }
+});
+
+/* INIT */
+checkSession();   // cek session backend (users)
+loadPosHujan();   // ambil data dari backend dan tampilkan marker
+</script>
+</body>
+</html>
