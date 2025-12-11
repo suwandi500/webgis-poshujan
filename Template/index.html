@@ -264,34 +264,39 @@
       line-height: 1.4;
     }
 
-    .popup-rain {
+    /* ==== LIST RINGKASAN HUJAN BULANAN DI POPUP ==== */
+    .popup-rain-list {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #023e8a;
+    }
+
+    .popup-rain-item {
       display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 6px 0;
-      padding: 6px 8px;
-      border-radius: 8px;
-      background-color: #e3f2ff;
+      align-items: flex-start;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+
+    .popup-bullet {
+      font-size: 14px;
+      line-height: 1.4;
     }
 
     .popup-rain-emoji {
-      font-size: 22px;
+      font-size: 18px;
+      margin-top: 1px;
     }
 
-    .popup-rain-value {
-      font-size: 15px;
-      font-weight: 700;
-    }
-
-    .popup-rain-value span.unit {
-      font-size: 12px;
-      font-weight: 500;
-      color: #555;
-      margin-left: 2px;
-    }
-
-    .popup-rain-date {
+    .popup-rain-date-small {
+      margin-top: 4px;
       font-size: 11px;
+      color: #555;
+    }
+
+    .popup-rain-loading,
+    .popup-rain-empty {
+      font-size: 12px;
       color: #555;
     }
   </style>
@@ -444,6 +449,71 @@ async function loadPosHujan() {
   }
 }
 
+/* ==========================
+   AMBIL RINGKASAN BULANAN UNTUK POPUP
+========================== */
+async function loadRingkasanBulanan(pos) {
+  const containerId = `ringkasan-${pos.id_poshujan}`;
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  container.innerHTML =
+    '<div class="popup-rain-loading">Memuat ringkasan curah hujan...</div>';
+
+  try {
+    const res = await fetch(
+      `/api/curah_hujan?nama_pos=${encodeURIComponent(pos.name)}&mode=bulanan`
+    );
+    const data = await res.json();
+
+    if (!res.ok || data.status !== "success" || !Array.isArray(data.data) || data.data.length === 0) {
+      container.innerHTML =
+        '<div class="popup-rain-empty">Tidak ada data bulanan.</div>';
+      return;
+    }
+
+    // Urutkan per bulan, ambil 2 bulan terakhir
+    const list = data.data.slice().sort((a, b) => a.bulan.localeCompare(b.bulan));
+    const last = list[list.length - 1];               // bulan terbaru
+    const prev = list.length > 1 ? list[list.length - 2] : null; // bulan sebelumnya
+
+    let html = "";
+
+    if (last) {
+      html += `
+        <div class="popup-rain-item">
+          <span class="popup-bullet">•</span>
+          <span class="popup-rain-emoji">🌧️</span>
+          <span>
+            Curah hujan <strong>bulan ini</strong> – periode ${last.bulan} – total ${Number(last.ch).toFixed(1)} mm
+          </span>
+        </div>
+      `;
+    }
+
+    if (prev) {
+      html += `
+        <div class="popup-rain-item">
+          <span class="popup-bullet">•</span>
+          <span class="popup-rain-emoji">🌧️</span>
+          <span>
+            Curah hujan <strong>bulan sebelumnya</strong> – periode ${prev.bulan} – total ${Number(prev.ch).toFixed(1)} mm
+          </span>
+        </div>
+      `;
+    }
+
+    container.innerHTML = html;
+  } catch (err) {
+    console.error(err);
+    container.innerHTML =
+      '<div class="popup-rain-empty">Gagal memuat ringkasan.</div>';
+  }
+}
+
+/* ==========================
+      TAMPILKAN MARKER + POPUP
+========================== */
 function filterMarkers() {
   // bersihkan marker lama
   activeMarkers.forEach(marker => map.removeLayer(marker));
@@ -459,34 +529,8 @@ function filterMarkers() {
     const matchKec = !selectedKec || pos.kecamatan === selectedKec;
 
     if (matchKab && matchKec) {
-
-      let rainBlock = "";
-      if (pos.lastDate && pos.lastCH !== null && pos.lastCH !== undefined) {
-        const chStr = Number(pos.lastCH).toFixed(1);
-        rainBlock = `
-          <div class="popup-rain">
-            <div class="popup-rain-emoji">🌧️</div>
-            <div>
-              <div class="popup-rain-value">
-                ${chStr}<span class="unit">mm</span>
-              </div>
-              <div class="popup-rain-date">
-                Tanggal: ${pos.lastDate}
-              </div>
-            </div>
-          </div>
-        `;
-      } else {
-        rainBlock = `
-          <div class="popup-rain">
-            <div class="popup-rain-emoji">🌧️</div>
-            <div>
-              <div class="popup-rain-value">Belum ada data</div>
-              <div class="popup-rain-date">Curah hujan terakhir belum tercatat</div>
-            </div>
-          </div>
-        `;
-      }
+      const popupId = `ringkasan-${pos.id_poshujan}`;
+      const lastDateText = pos.lastDate || "-";
 
       const popupHtml = `
         <div class="popup-card">
@@ -494,14 +538,32 @@ function filterMarkers() {
           <div class="popup-meta">
             <div><strong>Kabupaten:</strong> ${pos.kabupaten || "-"}</div>
             <div><strong>Kecamatan:</strong> ${pos.kecamatan || "-"}</div>
+            <div><strong>Lintang:</strong> ${
+              pos.lat != null ? pos.lat.toFixed(4) + "°" : "-"
+            }</div>
+            <div><strong>Bujur:</strong> ${
+              pos.lng != null ? pos.lng.toFixed(4) + "°" : "-"
+            }</div>
           </div>
-          ${rainBlock}
+
+          <div class="popup-rain-list" id="${popupId}">
+            <div class="popup-rain-loading">Memuat ringkasan curah hujan...</div>
+          </div>
+
+          <div class="popup-rain-date-small">
+            Data s/d ${lastDateText}
+          </div>
         </div>
       `;
 
       const marker = L.marker([pos.lat, pos.lng])
         .addTo(map)
         .bindPopup(popupHtml);
+
+      // setiap popup dibuka, ambil data bulanan dari backend
+      marker.on("popupopen", () => {
+        loadRingkasanBulanan(pos);
+      });
 
       activeMarkers.push(marker);
       bounds.push([pos.lat, pos.lng]);

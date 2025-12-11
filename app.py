@@ -221,7 +221,6 @@ def detail_pos(id_poshujan):
     harian_values = []
 
     for tanggal, ch in rows_harian:
-        # pastikan bisa di-format sebagai tanggal
         if hasattr(tanggal, "strftime"):
             harian_labels.append(tanggal.strftime("%Y-%m-%d"))
         else:
