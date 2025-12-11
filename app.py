@@ -216,7 +216,7 @@ def detail_pos(id_poshujan):
     rows_harian = cur.fetchall()
 
     harian_labels = [r[0].strftime("%Y-%m-%d") for r in rows_harian]
-    harian_values = [float(r[1]) for r in rows_harian if r[1] is not None]
+    harian_values = [float(r[1]) for r[1] in rows_harian if r[1] is not None]
 
     # DATA CH BULANAN (AGREGASI)
     cur.execute("""
@@ -231,7 +231,7 @@ def detail_pos(id_poshujan):
     rows_bulanan = cur.fetchall()
 
     bulanan_labels = [r[0].strftime("%Y-%m") for r in rows_bulanan]
-    bulanan_values = [float(r[1]) for r in rows_bulanan if r[1] is not None]
+    bulanan_values = [float(r[1]) for r[1] in rows_bulanan if r[1] is not None]
 
     cur.close()
     conn.close()
@@ -248,28 +248,57 @@ def detail_pos(id_poshujan):
 
 
 # ============================================================
-# API POS HUJAN UNTUK TABEL & PETA
+# API POS HUJAN UNTUK TABEL & PETA (PAKAI BULAN INI & BULAN SEBELUMNYA)
 # ============================================================
 @app.route("/api/pos_hujan")
 def api_pos_hujan():
+    """
+    Mengirim data pos hujan + TOTAL CH:
+    - bulan ini (1 s/d tanggal data terakhir di bulan itu)
+    - bulan sebelumnya (1 bulan kalender penuh)
+    + tanggal data terakhir (bukan nilai harian)
+    """
     conn = get_db()
     cur = conn.cursor()
 
     cur.execute("""
         WITH latest AS (
+            -- tanggal terakhir yang punya data CH per pos
             SELECT
                 id_poshujan,
-                MAX(tanggal) AS tanggal_terkini
+                MAX(tanggal) AS t_max
             FROM curah_hujan
             WHERE ch_mm IS NOT NULL
             GROUP BY id_poshujan
         ),
-        latest_ch AS (
-            SELECT c.id_poshujan, c.tanggal, c.ch_mm
+        bulan_ini AS (
+            -- akumulasi CH bulan ini: dari tgl 1 bulan t_max sampai t_max
+            SELECT
+                c.id_poshujan,
+                DATE_TRUNC('month', l.t_max)::date AS bulan_ini,
+                SUM(c.ch_mm) AS ch_bulan_ini
             FROM curah_hujan c
             JOIN latest l
               ON c.id_poshujan = l.id_poshujan
-             AND c.tanggal = l.tanggal_terkini
+            WHERE c.ch_mm IS NOT NULL
+              AND c.tanggal >= DATE_TRUNC('month', l.t_max)
+              AND c.tanggal <= l.t_max
+            GROUP BY c.id_poshujan, DATE_TRUNC('month', l.t_max)
+        ),
+        bulan_sebelum AS (
+            -- akumulasi CH bulan sebelumnya: 1 bulan kalender penuh
+            SELECT
+                c.id_poshujan,
+                DATE_TRUNC('month', l.t_max - INTERVAL '1 month')::date AS bulan_sebelum,
+                SUM(c.ch_mm) AS ch_bulan_sebelum
+            FROM curah_hujan c
+            JOIN latest l
+              ON c.id_poshujan = l.id_poshujan
+            WHERE c.ch_mm IS NOT NULL
+              AND c.tanggal >= DATE_TRUNC('month', l.t_max - INTERVAL '1 month')
+              AND c.tanggal <  DATE_TRUNC('month', l.t_max)
+            GROUP BY c.id_poshujan,
+                     DATE_TRUNC('month', l.t_max - INTERVAL '1 month')
         )
         SELECT 
             p.id_poshujan,
@@ -279,11 +308,18 @@ def api_pos_hujan():
             p.bujur_dd,
             k.nama_kabupaten,
             p.kecamatan,
-            lc.tanggal AS tanggal_terkini,
-            lc.ch_mm   AS ch_terkini
+
+            l.t_max AS tanggal_terakhir,
+            bi.bulan_ini,
+            bs.bulan_sebelum,
+            bi.ch_bulan_ini,
+            bs.ch_bulan_sebelum
+
         FROM pos_hujan p
-        LEFT JOIN kabupaten k ON p.id_kabupaten = k.id_kabupaten
-        LEFT JOIN latest_ch lc ON lc.id_poshujan = p.id_poshujan
+        LEFT JOIN kabupaten     k  ON p.id_kabupaten = k.id_kabupaten
+        LEFT JOIN latest        l  ON l.id_poshujan = p.id_poshujan
+        LEFT JOIN bulan_ini     bi ON bi.id_poshujan = p.id_poshujan
+        LEFT JOIN bulan_sebelum bs ON bs.id_poshujan = p.id_poshujan
         ORDER BY k.nama_kabupaten NULLS LAST, p.nama_pos;
     """)
 
@@ -293,19 +329,35 @@ def api_pos_hujan():
 
     hasil = []
     for r in rows:
-        tanggal_terkini = r[7].strftime("%Y-%m-%d") if r[7] is not None else None
-        ch_terkini = float(r[8]) if r[8] is not None else None
+        (
+            id_poshujan,
+            kode_pos,
+            nama_pos,
+            lat,
+            lng,
+            nama_kabupaten,
+            kecamatan,
+            tgl_terakhir,
+            bulan_ini,
+            bulan_sebelum,
+            ch_bulan_ini,
+            ch_bulan_sebelum,
+        ) = r
 
         hasil.append({
-            "id_poshujan":       r[0],
-            "kode_pos":          r[1],
-            "nama":              r[2],
-            "lat":               r[3],
-            "lng":               r[4],
-            "kabupaten":         r[5],
-            "kecamatan":         r[6],
-            "tanggal_terkini":   tanggal_terkini,
-            "ch_terkini":        ch_terkini,
+            "id_poshujan":       id_poshujan,
+            "kode_pos":          kode_pos,
+            "nama":              nama_pos,
+            "lat":               lat,
+            "lng":               lng,
+            "kabupaten":         nama_kabupaten,
+            "kecamatan":         kecamatan,
+
+            "tanggal_terakhir":  tgl_terakhir.strftime("%Y-%m-%d") if tgl_terakhir else None,
+            "periode_bulan_ini":        bulan_ini.strftime("%Y-%m") if bulan_ini else None,
+            "periode_bulan_sebelumnya": bulan_sebelum.strftime("%Y-%m") if bulan_sebelum else None,
+            "ch_bulan_ini":        float(ch_bulan_ini) if ch_bulan_ini is not None else None,
+            "ch_bulan_sebelumnya": float(ch_bulan_sebelum) if ch_bulan_sebelum is not None else None,
         })
 
     return jsonify(hasil)

@@ -82,6 +82,7 @@
       cursor: pointer;
     }
 
+    /* MENU DATA POS HUJAN */
     .menu {
       position: relative;
     }
@@ -93,7 +94,7 @@
       background: white;
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
       border-radius: 6px;
-      min-width: 160px;
+      min-width: 180px;
       z-index: 2000;
     }
     .dropdown-data a {
@@ -106,10 +107,8 @@
     .dropdown-data a:hover {
       background-color: #f1f1f1;
     }
-    .menu:hover .dropdown-data {
-      display: block;
-    }
 
+    /* PROFIL & DROPDOWN LOGOUT */
     .profile-dropdown {
       position: relative;
     }
@@ -131,17 +130,20 @@
       border-radius: 6px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
       z-index: 1000;
+      min-width: 140px;
     }
     .dropdown-content button {
-      padding: 10px;
+      padding: 10px 15px;
       width: 100%;
       border: none;
       background: white;
       text-align: left;
       cursor: pointer;
+      font-size: 14px;
+      color: #023e8a;
     }
-    .profile-dropdown:hover .dropdown-content {
-      display: block;
+    .dropdown-content button:hover {
+      background-color: #f1f1f1;
     }
 
     #map {
@@ -310,19 +312,22 @@
   </div>
 
   <div class="header-buttons">
+    <!-- MENU DATA POS HUJAN (hanya muncul saat login) -->
     <div class="menu" id="menuPosHujan" style="display: none;">
-      <button class="menu-btn">📊 Data Pos Hujan ▾</button>
-      <div class="dropdown-data">
+      <button class="menu-btn" id="btnDataPosHujan">📊 Data Pos Hujan ▾</button>
+      <div class="dropdown-data" id="dropdownDataPosHujan">
         <a href="{{ url_for('upload') }}">⬆️ Upload Data</a>
         <a href="{{ url_for('lihat') }}">👁️ Lihat Data</a>
       </div>
     </div>
 
+    <!-- TOMBOL LOGIN -->
     <button id="loginBtn">🔑 Login</button>
 
+    <!-- PROFIL + LOGOUT -->
     <div class="profile-dropdown" id="profileArea" style="display:none;">
       <button class="profile-icon" id="profileLabel">👤 admin</button>
-      <div class="dropdown-content">
+      <div class="dropdown-content" id="profileDropdown">
         <button onclick="handleLogout()">🚪 Logout</button>
       </div>
     </div>
@@ -365,7 +370,7 @@
 let isLoggedIn = false;
 let currentUser = null;
 
-let markersData = [];       // {id_poshujan, name, lat, lng, kabupaten, kecamatan, lastDate, lastCH}
+let markersData = [];       // data pos hujan
 let kecamatanData = {};     // { "Sigi": Set([...]), ... }
 let activeMarkers = [];
 
@@ -602,7 +607,40 @@ function showToast(msg) {
 }
 
 /* ==========================
-      EVENT LISTENERS
+      DROPDOWN TOGGLING
+========================== */
+const dataMenuBtn = document.getElementById("btnDataPosHujan");
+const dataDropdown = document.getElementById("dropdownDataPosHujan");
+const profileBtn = document.getElementById("profileLabel");
+const profileDropdown = document.getElementById("profileDropdown");
+
+function hideAllDropdowns() {
+  if (dataDropdown) dataDropdown.style.display = "none";
+  if (profileDropdown) profileDropdown.style.display = "none";
+}
+
+// klik tombol Data Pos Hujan
+if (dataMenuBtn && dataDropdown) {
+  dataMenuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isVisible = dataDropdown.style.display === "block";
+    hideAllDropdowns();
+    dataDropdown.style.display = isVisible ? "none" : "block";
+  });
+}
+
+// klik tombol profil (username)
+if (profileBtn && profileDropdown) {
+  profileBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isVisible = profileDropdown.style.display === "block";
+    hideAllDropdowns();
+    profileDropdown.style.display = isVisible ? "none" : "block";
+  });
+}
+
+/* ==========================
+      EVENT LISTENERS UMUM
 ========================== */
 document.getElementById("loginBtn").addEventListener("click", () => {
   hidePopups();
@@ -635,10 +673,24 @@ document.getElementById("resetFilterBtn").addEventListener("click", () => {
   filterMarkers();
 });
 
+// klik di luar login-box & dropdown -> tutup
 document.addEventListener("click", function(event) {
   const loginBox = document.getElementById("loginBox");
-  if (!loginBox.contains(event.target) && event.target.id !== "loginBtn") {
+  const clickedLoginBtn = event.target.id === "loginBtn";
+  const clickedInsideLogin = loginBox.contains(event.target) || clickedLoginBtn;
+
+  if (!clickedInsideLogin) {
     hidePopups();
+  }
+
+  const menuPos = document.getElementById("menuPosHujan");
+  const profileArea = document.getElementById("profileArea");
+
+  const insideDataMenu = menuPos && menuPos.contains(event.target);
+  const insideProfileMenu = profileArea && profileArea.contains(event.target);
+
+  if (!insideDataMenu && !insideProfileMenu) {
+    hideAllDropdowns();
   }
 });
 
